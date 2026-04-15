@@ -3,8 +3,11 @@ import {
   LayoutDashboard, MapPin, CalendarCheck, Route, Users,
   MessageSquare, CreditCard, Compass, Utensils, CalendarDays, LogOut,
 } from 'lucide-react';
+// MapPin still used in navMain destinations item
 import { useAuth } from '../../context/AuthContext';
 import { useLang } from '../../context/LanguageContext';
+import logoIcon from '../../assets/logo-icon.png';
+import logoText from '../../assets/logo-text.png';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -39,14 +42,9 @@ export default function Sidebar() {
   return (
     <aside className="fixed top-0 start-0 h-screen w-60 bg-white shadow-sidebar z-40 flex flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-6 py-5 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <MapPin size={16} className="text-white" strokeWidth={2} />
-        </div>
-        <div>
-          <span className="text-base font-bold text-gray-900 leading-tight block">Local Trip</span>
-          <span className="text-[10px] text-gray-400 uppercase tracking-wide">{t('admin')}</span>
-        </div>
+      <div className="flex items-center gap-2 px-4 py-4 border-b border-gray-100">
+        <img src={logoText} alt="Local Trip" className="h-8 w-auto" />
+        <img src={logoIcon} alt="Logo" className="h-10 w-auto" />
       </div>
 
       {/* Navigation */}

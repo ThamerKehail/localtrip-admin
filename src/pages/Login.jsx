@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, MapPin, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
+import logoIcon from '../assets/logo-icon.png';
+import logoText from '../assets/logo-text.png';
 
 export default function Login() {
   const { login, loading, authError } = useAuth();
@@ -23,83 +25,95 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[#F5F6FA] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-            <MapPin size={20} className="text-white" strokeWidth={2} />
-          </div>
-          <div>
-            <p className="text-xl font-bold text-gray-900 leading-tight">Local Trip</p>
-            <p className="text-xs text-gray-400 uppercase tracking-widest">{t('admin')}</p>
-          </div>
-        </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-3xl shadow-card p-8">
-          <div className="flex items-start justify-between mb-7">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('welcomeBack')}</h1>
-              <p className="text-sm text-gray-400">{t('signInToAdmin')}</p>
-            </div>
-            {/* Language toggle */}
-            <button
-              onClick={toggle}
-              className="text-xs font-medium text-primary border border-primary/30 px-3 py-1.5 rounded-xl hover:bg-primary/5 transition-colors flex-shrink-0"
-            >
-              {lang === 'en' ? 'العربية' : 'English'}
-            </button>
+        {/* Card — matches Figma: white, rounded-3xl, border, shadow */}
+        <div className="bg-white rounded-[25px] border border-[#b9b9b9] shadow-lg px-12 py-16 flex flex-col items-center gap-8">
+
+          {/* Logo — text left + icon right (matches Figma layout) */}
+          <div className="flex items-center gap-3">
+            <img src={logoText} alt="Local Trip" className="h-[54px] w-auto" />
+            <img src={logoIcon} alt="Logo" className="h-[98px] w-auto" />
           </div>
 
-          {authError && (
-            <div className="flex items-center gap-2.5 p-3.5 mb-5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
-              <AlertCircle size={16} className="flex-shrink-0" />
-              {authError}
-            </div>
-          )}
+          {/* Title */}
+          <h1 className="text-[28px] font-bold text-[#202224] text-center leading-tight tracking-tight">
+            {lang === 'ar' ? 'لوحة التحكم الأساسية' : 'Admin Dashboard'}
+          </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="w-full space-y-4">
+
+            {/* Error */}
+            {authError && (
+              <div className="flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                {authError}
+              </div>
+            )}
+
             {/* Email */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('emailAddress')}</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => set('email', e.target.value)}
-                placeholder="admin@localtrip.sa"
-                required
-                autoComplete="email"
-                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-colors placeholder:text-gray-300"
-              />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[#1f1f1f] text-end">
+                {t('emailAddress')}
+              </label>
+              <div className="flex items-center border border-[#d0d5dd] rounded-lg px-4 py-3 bg-white gap-2">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => set('email', e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  autoComplete="email"
+                  className="flex-1 text-sm outline-none text-gray-800 placeholder:text-[#b8b8b8] text-end bg-transparent"
+                  dir="auto"
+                />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#95979D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+              </div>
             </div>
 
             {/* Password */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('password')}</label>
-              <div className="relative">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[#1f1f1f] text-end">
+                {t('password')}
+              </label>
+              <div className="flex items-center border border-[#d0d5dd] rounded-lg px-4 py-3 bg-white gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-[#95979D] hover:text-gray-600 transition-colors flex-shrink-0"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => set('password', e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={lang === 'ar' ? 'أدخل كلمة المرور الخاصة بك' : 'Enter your password'}
                   required
                   autoComplete="current-password"
-                  className="w-full px-4 py-3 pe-11 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-colors placeholder:text-gray-300"
+                  className="flex-1 text-sm outline-none text-gray-800 placeholder:text-[#b8b8b8] text-end bg-transparent"
+                  dir="auto"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#95979D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
               </div>
+            </div>
+
+            {/* Forgot password */}
+            <div className="flex justify-end">
+              <button type="button" className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity">
+                {lang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+              </button>
             </div>
 
             {/* Submit */}
             <button
               type="submit"
               disabled={loading || !form.email || !form.password}
-              className="w-full py-3 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2 shadow-sm"
+              className="w-full py-3.5 bg-primary text-white rounded-full text-base font-bold hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -107,13 +121,23 @@ export default function Login() {
                   {t('signingIn')}
                 </span>
               ) : (
-                t('signIn')
+                lang === 'ar' ? 'تسجيل الدخول' : t('signIn')
               )}
             </button>
           </form>
+
+          {/* Language toggle */}
+          <button
+            onClick={toggle}
+            className="text-xs font-medium text-primary border border-primary/30 px-4 py-1.5 rounded-xl hover:bg-primary/5 transition-colors"
+          >
+            {lang === 'en' ? 'العربية' : 'English'}
+          </button>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">{t('authorizedOnly')}</p>
+        <p className="text-center text-xs text-gray-400 mt-5">
+          {t('authorizedOnly')}
+        </p>
       </div>
     </div>
   );
