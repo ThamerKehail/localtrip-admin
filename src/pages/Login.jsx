@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
-import logoIcon from '../assets/logo-icon.png';
-import logoText from '../assets/logo-text.png';
+import logoIcon from '../assets/logo-icon.svg';
+import logoText from '../assets/logo-text.svg';
 
 export default function Login() {
   const { login, loading, authError } = useAuth();

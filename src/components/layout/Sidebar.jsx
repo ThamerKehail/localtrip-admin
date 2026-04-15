@@ -6,8 +6,8 @@ import {
 // MapPin still used in navMain destinations item
 import { useAuth } from '../../context/AuthContext';
 import { useLang } from '../../context/LanguageContext';
-import logoIcon from '../../assets/logo-icon.png';
-import logoText from '../../assets/logo-text.png';
+import logoIcon from '../../assets/logo-icon.svg';
+import logoText from '../../assets/logo-text.svg';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
