@@ -8,10 +8,13 @@ const translations = {
     tourGuides: 'Tour Guides',
     messages: 'Messages',
     payments: 'Payments',
+    users: 'Users',
     pages: 'Pages',
     exploreScreen: 'Explore Screen',
     eatDrink: 'Eat & Drink',
     events: 'Events',
+    categories: 'Categories',
+    carousel: 'Carousel',
     signOut: 'Sign out',
 
     // Topbar
@@ -75,6 +78,8 @@ const translations = {
     delete: 'Delete',
     deleting: 'Deleting...',
     draft: 'Draft',
+    edit: 'Edit',
+    save: 'Save Changes',
 
     // Add Destination Modal
     addDestination: 'Add a New Destination',
@@ -85,14 +90,19 @@ const translations = {
     cityNameAr: 'City Name (AR)',
     cityPlaceholderEn: 'e.g. Riyadh',
     cityPlaceholderAr: 'مثال: الرياض',
+    selectCity: 'Select a city',
     selectCategory: 'Select a category',
+    allCities: 'All Cities',
     descriptionEn: 'Description (EN)',
     descriptionAr: 'Description (AR)',
     descPlaceholderEn: 'Describe this destination...',
     descPlaceholderAr: 'وصف الوجهة...',
     saveAsDraft: 'Save as Draft',
-    cityRequired: 'City name is required',
+    cityRequired: 'City is required',
     categoryRequired: 'Category is required',
+    sortOrder: 'Display Order',
+    sortOrderHint: 'Lower number = shown first (0 = default)',
+    order: 'Order',
 
     // Guides
     guideApproval: 'Tour Guide Approval',
@@ -139,10 +149,13 @@ const translations = {
     tourGuides: 'المرشدون',
     messages: 'الرسائل',
     payments: 'المدفوعات',
+    users: 'المستخدمون',
     pages: 'الصفحات',
     exploreScreen: 'شاشة الاستكشاف',
     eatDrink: 'الطعام والشراب',
     events: 'الفعاليات',
+    categories: 'التصنيفات',
+    carousel: 'الكاروسيل',
     signOut: 'تسجيل الخروج',
 
     // Topbar
@@ -206,6 +219,8 @@ const translations = {
     delete: 'حذف',
     deleting: 'جاري الحذف...',
     draft: 'مسودة',
+    edit: 'تعديل',
+    save: 'حفظ التغييرات',
 
     // Add Destination Modal
     addDestination: 'إضافة وجهة جديدة',
@@ -216,14 +231,19 @@ const translations = {
     cityNameAr: 'اسم المدينة (AR)',
     cityPlaceholderEn: 'e.g. Riyadh',
     cityPlaceholderAr: 'مثال: الرياض',
+    selectCity: 'اختر مدينة',
     selectCategory: 'اختر تصنيفاً',
+    allCities: 'جميع المدن',
     descriptionEn: 'الوصف (EN)',
     descriptionAr: 'الوصف (AR)',
     descPlaceholderEn: 'Describe this destination...',
     descPlaceholderAr: 'وصف الوجهة...',
     saveAsDraft: 'حفظ كمسودة',
-    cityRequired: 'اسم المدينة مطلوب',
+    cityRequired: 'المدينة مطلوبة',
     categoryRequired: 'التصنيف مطلوب',
+    sortOrder: 'ترتيب العرض',
+    sortOrderHint: 'رقم أصغر = يُعرض أولاً (0 = افتراضي)',
+    order: 'الترتيب',
 
     // Guides
     guideApproval: 'اعتماد المرشدين السياحيين',

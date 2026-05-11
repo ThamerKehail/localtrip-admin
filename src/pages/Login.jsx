@@ -29,10 +29,28 @@ export default function Login() {
         {/* Card — matches Figma: white, rounded-3xl, border, shadow */}
         <div className="bg-white rounded-[25px] border border-[#b9b9b9] shadow-lg px-12 py-16 flex flex-col items-center gap-8">
 
-          {/* Logo — text left + icon right (matches Figma layout) */}
-          <div className="flex items-center gap-3">
-            <img src={logoText} alt="Local Trip" className="h-[54px] w-auto" />
-            <img src={logoIcon} alt="Logo" className="h-[98px] w-auto" />
+          {/* Logo — text stack left + icon right (matches Figma layout) */}
+          <div className="flex items-center gap-4">
+            {/* Left: Arabic name stacked above English SVG text */}
+            <div className="flex flex-col items-end gap-1">
+              <span
+                className="font-arabic font-bold leading-none"
+                style={{ fontSize: '22px', color: '#5A41A9', fontFamily: 'Almarai, sans-serif' }}
+              >
+                لوكل ترب
+              </span>
+              <img
+                src={logoText}
+                alt="Local Trip"
+                style={{ width: '124px', height: '28px', display: 'block' }}
+              />
+            </div>
+            {/* Right: map illustration icon */}
+            <img
+              src={logoIcon}
+              alt="Logo"
+              style={{ width: '98px', height: '92px', display: 'block' }}
+            />
           </div>
 
           {/* Title */}

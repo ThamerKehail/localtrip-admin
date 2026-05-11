@@ -9,7 +9,13 @@ import Destinations from './pages/Destinations';
 import Guides from './pages/Guides';
 import Bookings from './pages/Bookings';
 import ExploreScreen from './pages/ExploreScreen';
+import Trips from './pages/Trips';
+import EatDrink from './pages/EatDrink';
+import Events from './pages/Events';
+import Users from './pages/Users';
 import Placeholder from './pages/Placeholder';
+import Categories from './pages/Categories';
+import Carousel from './pages/Carousel';
 
 export default function App() {
   return (
@@ -24,12 +30,15 @@ export default function App() {
                 <Route path="/destinations" element={<Destinations />} />
                 <Route path="/guides" element={<Guides />} />
                 <Route path="/bookings" element={<Bookings />} />
-                <Route path="/trips" element={<Placeholder name="Trips" />} />
+                <Route path="/trips" element={<Trips />} />
+                <Route path="/users" element={<Users />} />
                 <Route path="/messages" element={<Placeholder name="Messages" />} />
                 <Route path="/payments" element={<Placeholder name="Payments" />} />
                 <Route path="/pages/explore" element={<ExploreScreen />} />
-                <Route path="/pages/eat-drink" element={<Placeholder name="Eat & Drink" />} />
-                <Route path="/pages/events" element={<Placeholder name="Events" />} />
+                <Route path="/pages/eat-drink" element={<EatDrink />} />
+                <Route path="/pages/events" element={<Events />} />
+                <Route path="/pages/categories" element={<Categories />} />
+                <Route path="/pages/carousel" element={<Carousel />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

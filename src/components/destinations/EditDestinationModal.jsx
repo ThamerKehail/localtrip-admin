@@ -1,20 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useLang } from '../../context/LanguageContext';
-import { createDestination, uploadImage } from '../../services/admin.service';
+import { updateDestination, uploadImage } from '../../services/admin.service';
 
-const CITIES = [
-  'Riyadh', 'Jeddah', 'Mecca', 'Medina', 'Dammam', 'Khobar',
-  'Abha', 'Tabuk', 'Al Ula', 'Hail', 'Yanbu', 'Najran',
-  'Jizan', 'Qassim', 'Taif',
-];
-
-export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
+export default function EditDestinationModal({ dest, onClose, onSave }) {
   const { t } = useLang();
-  const [form, setForm] = useState({ city: '', nameAr: '', category: '', description: '', descriptionAr: '', imageFile: null, imagePreview: null });
-  const [errors, setErrors] = useState({});
+  const [form, setForm] = useState({ nameAr: '', category: '', description: '', descriptionAr: '', sortOrder: 0, imageFile: null, imagePreview: null });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (dest) {
+      setForm({
+        nameAr: dest.nameAr || '',
+        category: dest.category || '',
+        description: dest.description || '',
+        descriptionAr: dest.descriptionAr || '',
+        sortOrder: dest.sortOrder ?? 0,
+        imageFile: null,
+        imagePreview: dest.coverPhoto || null,
+      });
+    }
+  }, [dest]);
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -26,33 +33,21 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
     }
   };
 
-  const validate = () => {
-    const errs = {};
-    if (!form.city) errs.city = t('cityRequired');
-    return errs;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
-
     setSaving(true);
     try {
-      let coverPhoto = null;
+      let coverPhoto = dest.coverPhoto;
       if (form.imageFile) coverPhoto = await uploadImage(form.imageFile, 'localtrip/destinations');
-      await createDestination({
-        nameEn: form.city,
-        nameAr: form.nameAr || form.city,
-        city: form.city,
+      await updateDestination(dest.id, {
+        nameAr: form.nameAr || dest.city,
         category: form.category || null,
         description: form.description || null,
         descriptionAr: form.descriptionAr || null,
+        sortOrder: parseInt(form.sortOrder) || 0,
         coverPhoto,
       });
-      setForm({ city: '', nameAr: '', category: '', description: '', descriptionAr: '', imageFile: null, imagePreview: null });
-      setErrors({});
-      onAdd();
+      onSave();
     } catch {
       alert(t('failedToLoad'));
     } finally {
@@ -60,14 +55,10 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
     }
   };
 
-  const handleClose = () => {
-    setForm({ city: '', nameAr: '', category: '', description: '', descriptionAr: '', imageFile: null, imagePreview: null });
-    setErrors({});
-    onClose();
-  };
+  if (!dest) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title={t('addDestination')} size="lg">
+    <Modal isOpen={!!dest} onClose={onClose} title={`${t('edit')} — ${dest.city}`} size="lg">
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Image */}
         <div>
@@ -75,7 +66,11 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
           {form.imagePreview ? (
             <div className="relative rounded-xl overflow-hidden h-40 bg-gray-100">
               <img src={form.imagePreview} alt="preview" className="w-full h-full object-cover" />
-              <button type="button" onClick={() => set('imagePreview', null)} className="absolute top-2 end-2 p-1.5 bg-white rounded-lg shadow text-gray-600 hover:text-red-500">
+              <button
+                type="button"
+                onClick={() => { set('imagePreview', null); set('imageFile', null); }}
+                className="absolute top-2 end-2 p-1.5 bg-white rounded-lg shadow text-gray-600 hover:text-red-500"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -89,20 +84,12 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
           )}
         </div>
 
-        {/* City */}
+        {/* City (read-only) */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-1.5">
-            {t('city')} <span className="text-red-500">*</span>
-          </label>
-          <select
-            value={form.city}
-            onChange={(e) => set('city', e.target.value)}
-            className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
-          >
-            <option value="">{t('selectCity')}</option>
-            {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+          <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('city')}</label>
+          <div className="px-3 py-2.5 text-sm border border-gray-100 rounded-xl bg-gray-50 text-gray-500">
+            {dest.city}
+          </div>
         </div>
 
         {/* Category */}
@@ -134,6 +121,19 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
           />
         </div>
 
+        {/* Sort Order */}
+        <div>
+          <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('sortOrder')}</label>
+          <input
+            type="number"
+            min="0"
+            value={form.sortOrder}
+            onChange={(e) => set('sortOrder', e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+          <p className="text-xs text-gray-400 mt-1">{t('sortOrderHint')}</p>
+        </div>
+
         {/* Description EN */}
         <div>
           <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('descriptionEn')}</label>
@@ -161,11 +161,11 @@ export default function AddDestinationModal({ isOpen, onClose, onAdd }) {
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={handleClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">
             {t('cancel')}
           </button>
           <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-600 disabled:opacity-60">
-            {saving ? '...' : t('addDestination')}
+            {saving ? '...' : t('save')}
           </button>
         </div>
       </form>

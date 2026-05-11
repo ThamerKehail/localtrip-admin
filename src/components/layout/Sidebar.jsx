@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import {
-  LayoutDashboard, MapPin, CalendarCheck, Route, Users,
-  MessageSquare, CreditCard, Compass, Utensils, CalendarDays, LogOut,
-} from 'lucide-react';
-// MapPin still used in navMain destinations item
+  IconDashboard, IconDestinations, IconBookings, IconTrips,
+  IconGuides, IconMessages, IconPayments, IconExplore, IconEatDrink, IconEvents, IconUsers,
+  IconCategories, IconCarousel,
+} from '../../assets/icons/SidebarIcons';
 import { useAuth } from '../../context/AuthContext';
 import { useLang } from '../../context/LanguageContext';
 import logoIcon from '../../assets/logo-icon.svg';
@@ -15,19 +16,22 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   const navMain = [
-    { labelKey: 'dashboard', icon: LayoutDashboard, to: '/' },
-    { labelKey: 'destinations', icon: MapPin, to: '/destinations' },
-    { labelKey: 'bookings', icon: CalendarCheck, to: '/bookings' },
-    { labelKey: 'trips', icon: Route, to: '/trips' },
-    { labelKey: 'tourGuides', icon: Users, to: '/guides' },
-    { labelKey: 'messages', icon: MessageSquare, to: '/messages' },
-    { labelKey: 'payments', icon: CreditCard, to: '/payments' },
+    { labelKey: 'dashboard', icon: IconDashboard, to: '/' },
+    { labelKey: 'destinations', icon: IconDestinations, to: '/destinations' },
+    { labelKey: 'bookings', icon: IconBookings, to: '/bookings' },
+    { labelKey: 'trips', icon: IconTrips, to: '/trips' },
+    { labelKey: 'tourGuides', icon: IconGuides, to: '/guides' },
+    { labelKey: 'messages', icon: IconMessages, to: '/messages' },
+    { labelKey: 'payments', icon: IconPayments, to: '/payments' },
+    { labelKey: 'users', icon: IconUsers, to: '/users' },
   ];
 
   const navPages = [
-    { labelKey: 'exploreScreen', icon: Compass, to: '/pages/explore' },
-    { labelKey: 'eatDrink', icon: Utensils, to: '/pages/eat-drink' },
-    { labelKey: 'events', icon: CalendarDays, to: '/pages/events' },
+    { labelKey: 'exploreScreen', icon: IconExplore, to: '/pages/explore' },
+    { labelKey: 'eatDrink', icon: IconEatDrink, to: '/pages/eat-drink' },
+    { labelKey: 'events', icon: IconEvents, to: '/pages/events' },
+    { labelKey: 'categories', icon: IconCategories, to: '/pages/categories' },
+    { labelKey: 'carousel', icon: IconCarousel, to: '/pages/carousel' },
   ];
 
   const handleLogout = async () => {
@@ -43,8 +47,8 @@ export default function Sidebar() {
     <aside className="fixed top-0 start-0 h-screen w-60 bg-white shadow-sidebar z-40 flex flex-col">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b border-gray-100">
-        <img src={logoText} alt="Local Trip" className="h-8 w-auto" />
-        <img src={logoIcon} alt="Logo" className="h-10 w-auto" />
+        <img src={logoText} alt="Local Trip" style={{ height: '22px', width: 'auto' }} />
+        <img src={logoIcon} alt="Logo" style={{ height: '36px', width: 'auto' }} />
       </div>
 
       {/* Navigation */}
