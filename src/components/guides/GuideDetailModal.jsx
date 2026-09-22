@@ -1,8 +1,9 @@
-import { CheckCircle, XCircle, Star, MapPin, Globe, Award, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Star, MapPin, Globe, Award, Clock, FileText, ExternalLink } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Badge from '../ui/Badge';
 
 const initials = (name) => name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+const isImageUrl = (url = '') => /\.(jpe?g|png|webp|gif|bmp|heic)(\?|$)/i.test(url);
 
 export default function GuideDetailModal({ guide, onClose, onApprove, onReject }) {
   return (
@@ -72,12 +73,43 @@ export default function GuideDetailModal({ guide, onClose, onApprove, onReject }
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs text-amber-600 mb-0.5">License Number</p>
-              <p className="font-mono font-medium text-gray-800">{guide.licenseNumber}</p>
+              <p className="font-mono font-medium text-gray-800">{guide.licenseNumber || '—'}</p>
             </div>
             <div>
               <p className="text-xs text-amber-600 mb-0.5">Expiry Date</p>
-              <p className="font-medium text-gray-800">{guide.licenseExpiry}</p>
+              <p className="font-medium text-gray-800">{guide.licenseExpiry || '—'}</p>
             </div>
+          </div>
+
+          {/* Uploaded license document */}
+          <div className="mt-3 pt-3 border-t border-amber-100">
+            <p className="text-xs text-amber-600 mb-1.5">License Document</p>
+            {guide.licenseImage ? (
+              isImageUrl(guide.licenseImage) ? (
+                <a href={guide.licenseImage} target="_blank" rel="noopener noreferrer" className="inline-block group">
+                  <img
+                    src={guide.licenseImage}
+                    alt="License document"
+                    className="max-h-44 rounded-lg border border-amber-200 object-contain bg-white group-hover:opacity-90 transition-opacity"
+                  />
+                  <span className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
+                    <ExternalLink size={12} /> Open full size
+                  </span>
+                </a>
+              ) : (
+                <a
+                  href={guide.licenseImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 transition-colors"
+                >
+                  <FileText size={15} /> View document
+                  <ExternalLink size={13} className="text-amber-400" />
+                </a>
+              )
+            ) : (
+              <p className="text-sm text-gray-400">No document uploaded</p>
+            )}
           </div>
         </div>
 
