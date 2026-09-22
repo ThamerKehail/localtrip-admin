@@ -1,21 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Eye, CheckCircle, XCircle, RotateCcw, Star, MapPin, Calendar, Loader2 } from 'lucide-react';
+import { Search, Eye, CheckCircle, XCircle, RotateCcw, Star, MapPin, Calendar, Loader2, Ban, AlertCircle } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import GuideDetailModal from '../components/guides/GuideDetailModal';
 import { fetchGuides, updateGuideStatus } from '../services/admin.service';
 import { useLang } from '../context/LanguageContext';
+import { formatDate } from '../utils/format';
+import { getErrorMessage } from '../utils/errors';
 
 const LIMIT = 10;
 const initials = (name = '') => name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
 export default function Guides() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const statusTabs = [
     { key: 'all', label: t('all') },
     { key: 'pending', label: t('pending') },
     { key: 'active', label: t('active') },
+    { key: 'suspended', label: t('suspended') },
     { key: 'rejected', label: t('rejected') },
   ];
 
@@ -27,6 +30,7 @@ export default function Guides() {
   const [page, setPage] = useState(1);
   const [selectedGuide, setSelectedGuide] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -42,9 +46,11 @@ export default function Guides() {
   useEffect(() => { load(); }, [load]);
 
   const handleStatus = async (id, status) => {
+    if (status === 'suspended' && !window.confirm(t('confirmSuspendGuide'))) return;
     setActionLoading(true);
+    setActionError('');
     try { await updateGuideStatus(id, status); setSelectedGuide(null); load(); }
-    catch { alert(t('failedToLoad')); }
+    catch (err) { setActionError(getErrorMessage(err, t)); }
     finally { setActionLoading(false); }
   };
 
@@ -61,7 +67,7 @@ export default function Guides() {
 
       <div className="bg-white rounded-2xl shadow-card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-gray-100">
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {statusTabs.map(({ key, label }) => (
               <button
                 key={key}
@@ -93,6 +99,13 @@ export default function Guides() {
           </div>
         </div>
 
+        {actionError && (
+          <div role="alert" className="flex items-center gap-2 mx-4 mt-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            {actionError}
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-24"><Loader2 size={24} className="animate-spin text-primary" /></div>
         ) : guides.length === 0 ? (
@@ -118,14 +131,14 @@ export default function Guides() {
                           {initials(guide.user?.fullName)}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-800">{guide.user?.fullName}</p>
+                          <p className="text-sm font-semibold text-gray-800"><bdi>{guide.user?.fullName}</bdi></p>
                           <p className="text-xs text-gray-400">{guide.user?.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <MapPin size={12} />{guide.operatingCity || '—'}
+                        <MapPin size={12} /><bdi>{guide.operatingCity || '—'}</bdi>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -151,24 +164,34 @@ export default function Guides() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Calendar size={11} />{guide.licenseExpiry || '—'}
+                        <Calendar size={11} />{formatDate(guide.licenseExpiry, lang)}
                       </div>
                     </td>
                     <td className="px-4 py-3"><Badge status={guide.status} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setSelectedGuide(guide)} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors">
+                        <button onClick={() => setSelectedGuide(guide)} title={t('viewDetails')} aria-label={t('viewDetails')} className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors">
                           <Eye size={14} />
                         </button>
                         {guide.status === 'pending' && (
                           <>
-                            <button onClick={() => handleStatus(guide.id, 'active')} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors">
+                            <button onClick={() => handleStatus(guide.id, 'active')} disabled={actionLoading} title={t('approve')} aria-label={t('approve')} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors disabled:opacity-50">
                               <CheckCircle size={14} />
                             </button>
-                            <button onClick={() => handleStatus(guide.id, 'rejected')} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
+                            <button onClick={() => handleStatus(guide.id, 'rejected')} disabled={actionLoading} title={t('reject')} aria-label={t('reject')} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors disabled:opacity-50">
                               <XCircle size={14} />
                             </button>
                           </>
+                        )}
+                        {guide.status === 'active' && (
+                          <button onClick={() => handleStatus(guide.id, 'suspended')} disabled={actionLoading} title={t('suspend')} aria-label={t('suspend')} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors disabled:opacity-50">
+                            <Ban size={14} />
+                          </button>
+                        )}
+                        {guide.status === 'suspended' && (
+                          <button onClick={() => handleStatus(guide.id, 'active')} disabled={actionLoading} title={t('reactivate')} aria-label={t('reactivate')} className="p-1.5 rounded-lg hover:bg-green-50 text-green-600 transition-colors disabled:opacity-50">
+                            <CheckCircle size={14} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -189,10 +212,13 @@ export default function Guides() {
       {selectedGuide && (
         <GuideDetailModal
           guide={{ ...selectedGuide, name: selectedGuide.user?.fullName, email: selectedGuide.user?.email, phone: selectedGuide.user?.phone, city: selectedGuide.operatingCity }}
-          onClose={() => setSelectedGuide(null)}
+          onClose={() => { setSelectedGuide(null); setActionError(''); }}
           onApprove={() => handleStatus(selectedGuide.id, 'active')}
           onReject={() => handleStatus(selectedGuide.id, 'rejected')}
+          onSuspend={() => handleStatus(selectedGuide.id, 'suspended')}
+          onReactivate={() => handleStatus(selectedGuide.id, 'active')}
           loading={actionLoading}
+          error={actionError}
         />
       )}
     </div>

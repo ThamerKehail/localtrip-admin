@@ -1,12 +1,19 @@
-import { CheckCircle, XCircle, Star, MapPin, Globe, Award, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Star, MapPin, Globe, Award, Clock, Ban, AlertCircle, ExternalLink } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Badge from '../ui/Badge';
+import { useLang } from '../../context/LanguageContext';
+import { formatDate } from '../../utils/format';
 
-const initials = (name) => name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+const initials = (name = '') => name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
-export default function GuideDetailModal({ guide, onClose, onApprove, onReject }) {
+export default function GuideDetailModal({ guide, onClose, onApprove, onReject, onSuspend, onReactivate, loading, error }) {
+  const { t, lang } = useLang();
+  const specializations = Array.isArray(guide.specializations) ? guide.specializations : [];
+  const languages = Array.isArray(guide.languages) ? guide.languages : [];
+  const isPdf = typeof guide.licenseImage === 'string' && /\.pdf($|\?)/i.test(guide.licenseImage);
+
   return (
-    <Modal isOpen={!!guide} onClose={onClose} title="Guide Application" size="lg">
+    <Modal isOpen={!!guide} onClose={onClose} title={t('guideApplication')} size="lg">
       <div className="space-y-5">
         {/* Profile Header */}
         <div className="flex items-start gap-4">
@@ -15,17 +22,19 @@ export default function GuideDetailModal({ guide, onClose, onApprove, onReject }
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h3 className="text-lg font-bold text-gray-900">{guide.name}</h3>
+              <h3 className="text-lg font-bold text-gray-900"><bdi>{guide.name}</bdi></h3>
               <Badge status={guide.status} />
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">{guide.email} · {guide.phone}</p>
-            <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><MapPin size={13} />{guide.city}</span>
-              <span className="flex items-center gap-1"><Clock size={13} />{guide.experienceYears} years exp.</span>
+            <p className="text-sm text-gray-500 mt-0.5">
+              <bdi>{guide.email}</bdi>{guide.phone && <> · <bdi dir="ltr">{guide.phone}</bdi></>}
+            </p>
+            <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 flex-wrap">
+              <span className="flex items-center gap-1"><MapPin size={13} /><bdi>{guide.city || '—'}</bdi></span>
+              <span className="flex items-center gap-1"><Clock size={13} />{guide.experienceYears || 0} {t('yearsExp')}</span>
               {guide.rating > 0 && (
                 <span className="flex items-center gap-1">
                   <Star size={13} className="text-yellow-400 fill-yellow-400" />
-                  {guide.rating} ({guide.reviews} reviews)
+                  {Number(guide.rating).toFixed(1)} ({guide.totalReviews || 0} {t('reviews')})
                 </span>
               )}
             </div>
@@ -34,29 +43,31 @@ export default function GuideDetailModal({ guide, onClose, onApprove, onReject }
 
         {/* Bio */}
         <div className="bg-gray-50 rounded-xl p-4">
-          <p className="text-sm font-medium text-gray-700 mb-1">Bio</p>
-          <p className="text-sm text-gray-600">{guide.bio}</p>
+          <p className="text-sm font-medium text-gray-700 mb-1">{t('bio')}</p>
+          <p className="text-sm text-gray-600" dir="auto">{guide.bio || '—'}</p>
         </div>
 
         {/* Details Grid */}
         <div className="grid grid-cols-2 gap-4">
           {/* Specializations */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Specializations</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('specializations')}</p>
             <div className="flex flex-wrap gap-1.5">
-              {guide.specializations.map((s) => (
-                <span key={s} className="px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-xs font-medium">{s}</span>
+              {specializations.length === 0 && <span className="text-xs text-gray-400">—</span>}
+              {specializations.map((s) => (
+                <span key={s} className="px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-xs font-medium"><bdi>{s}</bdi></span>
               ))}
             </div>
           </div>
 
           {/* Languages */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Languages</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('languages')}</p>
             <div className="flex flex-wrap gap-1.5">
-              {guide.languages.map((l) => (
+              {languages.length === 0 && <span className="text-xs text-gray-400">—</span>}
+              {languages.map((l) => (
                 <span key={l} className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
-                  <Globe size={11} />{l}
+                  <Globe size={11} /><bdi>{l}</bdi>
                 </span>
               ))}
             </div>
@@ -67,39 +78,86 @@ export default function GuideDetailModal({ guide, onClose, onApprove, onReject }
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Award size={16} className="text-amber-600" />
-            <p className="text-sm font-semibold text-amber-800">License Information</p>
+            <p className="text-sm font-semibold text-amber-800">{t('licenseInfo')}</p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-xs text-amber-600 mb-0.5">License Number</p>
-              <p className="font-mono font-medium text-gray-800">{guide.licenseNumber}</p>
+              <p className="text-xs text-amber-600 mb-0.5">{t('licenseNumber')}</p>
+              <p className="font-mono font-medium text-gray-800" dir="ltr">{guide.licenseNumber || '—'}</p>
             </div>
             <div>
-              <p className="text-xs text-amber-600 mb-0.5">Expiry Date</p>
-              <p className="font-medium text-gray-800">{guide.licenseExpiry}</p>
+              <p className="text-xs text-amber-600 mb-0.5">{t('expiryDate')}</p>
+              <p className="font-medium text-gray-800">{formatDate(guide.licenseExpiry, lang)}</p>
             </div>
           </div>
+          {guide.licenseImage && (
+            <a
+              href={guide.licenseImage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-amber-800 hover:underline"
+            >
+              {!isPdf && (
+                <img src={guide.licenseImage} alt={t('licenseDocument')} className="w-16 h-12 rounded-lg object-cover border border-amber-100" />
+              )}
+              {t('viewLicenseDocument')}
+              <ExternalLink size={13} />
+            </a>
+          )}
         </div>
 
         {/* Submission date */}
-        <p className="text-xs text-gray-400">Submitted on {guide.submittedAt}</p>
+        <p className="text-xs text-gray-400">{t('submittedOn')} {formatDate(guide.createdAt, lang)}</p>
+
+        {error && (
+          <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            {error}
+          </div>
+        )}
 
         {/* Actions */}
         {guide.status === 'pending' && (
           <div className="flex gap-3 pt-2 border-t border-gray-100">
             <button
               onClick={onReject}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
             >
               <XCircle size={15} />
-              Reject
+              {t('reject')}
             </button>
             <button
               onClick={onApprove}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors"
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
             >
               <CheckCircle size={15} />
-              Approve Guide
+              {t('approve')}
+            </button>
+          </div>
+        )}
+        {guide.status === 'active' && onSuspend && (
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <button
+              onClick={onSuspend}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              <Ban size={15} />
+              {t('suspend')}
+            </button>
+          </div>
+        )}
+        {guide.status === 'suspended' && onReactivate && (
+          <div className="flex gap-3 pt-2 border-t border-gray-100">
+            <button
+              onClick={onReactivate}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50"
+            >
+              <CheckCircle size={15} />
+              {t('reactivate')}
             </button>
           </div>
         )}

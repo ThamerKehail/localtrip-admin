@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LanguageContext';
+import { getErrorMessage } from '../utils/errors';
 import logoIcon from '../assets/logo-icon.svg';
 import logoText from '../assets/logo-text.svg';
 
 export default function Login() {
-  const { login, loading, authError } = useAuth();
-  const { t, toggle, lang } = useLang();
+  const { login, loading, authError, authNotice } = useAuth();
+  const { t, toggle } = useLang();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: '', password: '' });
@@ -55,17 +56,17 @@ export default function Login() {
 
           {/* Title */}
           <h1 className="text-[28px] font-bold text-[#202224] text-center leading-tight tracking-tight">
-            {lang === 'ar' ? 'لوحة التحكم الأساسية' : 'Admin Dashboard'}
+            {t('adminDashboard')}
           </h1>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="w-full space-y-4">
 
             {/* Error */}
-            {authError && (
-              <div className="flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+            {(authError || authNotice) && (
+              <div role="alert" className="flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
                 <AlertCircle size={16} className="flex-shrink-0" />
-                {authError}
+                {authError ? getErrorMessage(authError, t, 'errLoginFailed') : t(authNotice)}
               </div>
             )}
 
@@ -108,7 +109,7 @@ export default function Login() {
                   type={showPassword ? 'text' : 'password'}
                   value={form.password}
                   onChange={(e) => set('password', e.target.value)}
-                  placeholder={lang === 'ar' ? 'أدخل كلمة المرور الخاصة بك' : 'Enter your password'}
+                  placeholder={t('passwordPlaceholder')}
                   required
                   autoComplete="current-password"
                   className="flex-1 text-sm outline-none text-gray-800 placeholder:text-[#b8b8b8] text-end bg-transparent"
@@ -123,7 +124,7 @@ export default function Login() {
             {/* Forgot password */}
             <div className="flex justify-end">
               <button type="button" className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity">
-                {lang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+                {t('forgotPassword')}
               </button>
             </div>
 
@@ -139,7 +140,7 @@ export default function Login() {
                   {t('signingIn')}
                 </span>
               ) : (
-                lang === 'ar' ? 'تسجيل الدخول' : t('signIn')
+                t('signIn')
               )}
             </button>
           </form>
@@ -149,7 +150,7 @@ export default function Login() {
             onClick={toggle}
             className="text-xs font-medium text-primary border border-primary/30 px-4 py-1.5 rounded-xl hover:bg-primary/5 transition-colors"
           >
-            {lang === 'en' ? 'العربية' : 'English'}
+            {t('language')}
           </button>
         </div>
 

@@ -8,7 +8,6 @@ import Dashboard from './pages/Dashboard';
 import Destinations from './pages/Destinations';
 import Guides from './pages/Guides';
 import Bookings from './pages/Bookings';
-import ExploreScreen from './pages/ExploreScreen';
 import Trips from './pages/Trips';
 import EatDrink from './pages/EatDrink';
 import Events from './pages/Events';
@@ -32,9 +31,10 @@ export default function App() {
                 <Route path="/bookings" element={<Bookings />} />
                 <Route path="/trips" element={<Trips />} />
                 <Route path="/users" element={<Users />} />
-                <Route path="/messages" element={<Placeholder name="Messages" />} />
-                <Route path="/payments" element={<Placeholder name="Payments" />} />
-                <Route path="/pages/explore" element={<ExploreScreen />} />
+                <Route path="/messages" element={<Placeholder nameKey="messages" />} />
+                <Route path="/payments" element={<Placeholder nameKey="payments" />} />
+                {/* Explore screen management has no backend API yet — was a mock-data page */}
+                <Route path="/pages/explore" element={<Placeholder nameKey="exploreScreen" />} />
                 <Route path="/pages/eat-drink" element={<EatDrink />} />
                 <Route path="/pages/events" element={<Events />} />
                 <Route path="/pages/categories" element={<Categories />} />
