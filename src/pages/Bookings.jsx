@@ -1,21 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Eye, Loader2 } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { fetchBookings } from '../services/admin.service';
 import { useLang } from '../context/LanguageContext';
+import { formatSAR, formatDate } from '../utils/format';
 
 const LIMIT = 10;
 
 export default function Bookings() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const statusTabs = [
     { key: 'all', label: t('all') },
     { key: 'pending', label: t('pending') },
     { key: 'confirmed', label: t('confirmed') },
+    { key: 'started', label: t('started') },
     { key: 'completed', label: t('completed') },
+    { key: 'declined', label: t('declined') },
     { key: 'cancelled', label: t('cancelled') },
   ];
 
@@ -30,19 +33,23 @@ export default function Bookings() {
     setLoading(true);
     const params = { page, limit: LIMIT };
     if (tab !== 'all') params.status = tab;
+    // Server-side search where supported; the client-side filter below
+    // remains as a fallback for backends that ignore `search`.
+    if (search.trim()) params.search = search.trim();
     fetchBookings(params)
       .then(({ bookings: rows, pagination: pg }) => { setBookings(rows); setPagination(pg); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [page, tab]);
+  }, [page, tab, search]);
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = search
+  const q = search.trim().toLowerCase();
+  const filtered = q
     ? bookings.filter((b) =>
-        b.bookingNumber?.includes(search) ||
-        b.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-        b.tour?.titleEn?.toLowerCase().includes(search.toLowerCase())
+        b.bookingNumber?.toLowerCase().includes(q) ||
+        b.user?.fullName?.toLowerCase().includes(q) ||
+        b.tour?.titleEn?.toLowerCase().includes(q)
       )
     : bookings;
 
@@ -76,7 +83,7 @@ export default function Bookings() {
               type="text"
               placeholder={t('searchBooking')}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="ps-9 pe-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 w-56 placeholder:text-gray-400"
             />
           </div>
@@ -96,25 +103,19 @@ export default function Bookings() {
                       {t(key)}
                     </th>
                   ))}
-                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((b) => (
-                  <tr key={b.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">{b.bookingNumber}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 whitespace-nowrap">{b.user?.fullName || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{b.guide?.user?.fullName || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-40 truncate">{b.tour?.titleEn || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{b.date}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800 whitespace-nowrap"><bdi>{b.user?.fullName || '—'}</bdi></td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap"><bdi>{b.guide?.user?.fullName || '—'}</bdi></td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-40 truncate"><bdi>{b.tour?.titleEn || '—'}</bdi></td>
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{formatDate(b.date, lang)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{(b.adultsCount || 0) + (b.childrenCount || 0)}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800">{b.totalPrice} SAR</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 whitespace-nowrap">{formatSAR(b.totalPrice, lang)}</td>
                     <td className="px-4 py-3"><Badge status={b.status} /></td>
-                    <td className="px-4 py-3">
-                      <button className="p-1.5 rounded-lg hover:bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Eye size={14} />
-                      </button>
-                    </td>
                   </tr>
                 ))}
               </tbody>

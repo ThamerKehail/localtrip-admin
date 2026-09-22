@@ -1,29 +1,25 @@
 import api from './api';
+import { getAccessToken, getStoredUser, setStoredUser, setTokens, clearAuthStorage } from './authStorage';
 
 export const login = async (email, password) => {
   const { data } = await api.post('/auth/login', { email, password });
-  const { accessToken, user } = data.data;
+  const { accessToken, refreshToken, user } = data.data || {};
 
-  if (user.role !== 'admin') {
-    throw new Error('Access denied. Admin accounts only.');
+  if (!user || user.role !== 'admin') {
+    const err = new Error('Access denied. Admin accounts only.');
+    err.appCode = 'NOT_ADMIN';
+    throw err;
   }
 
-  localStorage.setItem('admin_token', accessToken);
-  localStorage.setItem('admin_user', JSON.stringify(user));
+  clearAuthStorage();
+  setTokens(accessToken, refreshToken);
+  setStoredUser(user);
   return user;
 };
 
 export const logout = async () => {
-  try { await api.post('/auth/logout'); } catch (_) {}
-  localStorage.removeItem('admin_token');
-  localStorage.removeItem('admin_user');
+  try { await api.post('/auth/logout'); } catch { /* best effort — local session is cleared regardless */ }
+  clearAuthStorage();
 };
 
-export const getCurrentUser = () => {
-  try {
-    const raw = localStorage.getItem('admin_user');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+export const getCurrentUser = () => (getAccessToken() ? getStoredUser() : null);

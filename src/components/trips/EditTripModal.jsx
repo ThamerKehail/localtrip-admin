@@ -1,28 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X, Upload } from 'lucide-react';
+import { Plus, Trash2, X, Upload, AlertCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { fetchTripById, updateTrip, uploadImage } from '../../services/admin.service';
+import { useLang } from '../../context/LanguageContext';
+import { getErrorMessage } from '../../utils/errors';
+
+// Tour.status enum on the backend: draft | published | paused | inactive
+const TOUR_STATUSES = ['draft', 'published', 'paused', 'inactive'];
 
 export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
+  const { t } = useLang();
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  // { err, fallbackKey } — localized at render time so it follows the language toggle.
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !tripId) return;
     setLoading(true);
+    setSubmitError(null);
     fetchTripById(tripId)
       .then(({ trip }) => {
         setForm({
           titleEn: trip.titleEn || '',
           titleAr: trip.titleAr || '',
           city: trip.city || '',
-          description: trip.description || '',
+          // Production tours carry bilingual columns; `description` /
+          // `meetingLocation` are the legacy English columns.
+          descriptionEn: trip.descriptionEn || trip.description || '',
+          descriptionAr: trip.descriptionAr || '',
           priceAdult: trip.priceAdult ?? '',
           priceChild: trip.priceChild ?? 0,
           meetingTime: trip.meetingTime || '',
-          meetingLocation: trip.meetingLocation || '',
+          meetingLocationEn: trip.meetingLocationEn || trip.meetingLocation || '',
+          meetingLocationAr: trip.meetingLocationAr || '',
           status: trip.status || 'draft',
           coverPhoto: trip.coverPhoto || null,
           imageFile: null,
@@ -37,7 +50,7 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
         });
         setErrors({});
       })
-      .catch(() => alert('Failed to load trip details'))
+      .catch((err) => setSubmitError({ err, fallbackKey: 'errLoadTrip' }))
       .finally(() => setLoading(false));
   }, [isOpen, tripId]);
 
@@ -106,9 +119,11 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
 
   const validate = () => {
     const errs = {};
-    if (!form.titleEn.trim()) errs.titleEn = 'Title (English) is required';
-    if (!form.city.trim()) errs.city = 'City is required';
-    if (!form.priceAdult && form.priceAdult !== 0) errs.priceAdult = 'Price is required';
+    if (!form.titleEn.trim()) errs.titleEn = t('titleEnRequired');
+    if (!form.city.trim()) errs.city = t('cityRequired');
+    // The description column is NOT NULL — an empty value used to be sent as null (500).
+    if (!form.descriptionEn.trim()) errs.descriptionEn = t('descriptionEnRequired');
+    if (!form.priceAdult && form.priceAdult !== 0) errs.priceAdult = t('priceRequired');
     return errs;
   };
 
@@ -116,6 +131,8 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+    setErrors({});
+    setSubmitError(null);
 
     setSaving(true);
     try {
@@ -140,15 +157,23 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           })
       );
 
+      const descriptionEn = form.descriptionEn.trim();
+      const meetingLocationEn = form.meetingLocationEn.trim() || null;
+
       await updateTrip(tripId, {
         titleEn: form.titleEn.trim(),
         titleAr: form.titleAr.trim() || form.titleEn.trim(),
         city: form.city.trim(),
-        description: form.description.trim() || null,
+        // Legacy columns mirror the English values so older clients stay in sync.
+        description: descriptionEn,
+        descriptionEn,
+        descriptionAr: form.descriptionAr.trim() || null,
         priceAdult: parseFloat(form.priceAdult) || 0,
         priceChild: parseFloat(form.priceChild) || 0,
         meetingTime: form.meetingTime.trim() || null,
-        meetingLocation: form.meetingLocation.trim() || null,
+        meetingLocation: meetingLocationEn,
+        meetingLocationEn,
+        meetingLocationAr: form.meetingLocationAr.trim() || null,
         status: form.status,
         coverPhoto,
         itinerary: form.itinerary.filter((s) => s.activity.trim()),
@@ -156,25 +181,34 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
         included: form.included.filter((s) => s.trim()),
       });
       onSave();
-    } catch {
-      alert('Failed to save trip. Please try again.');
+    } catch (err) {
+      setSubmitError({ err, fallbackKey: 'errSaveTrip' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleClose = () => { setErrors({}); onClose(); };
+  const handleClose = () => { setErrors({}); setSubmitError(null); onClose(); };
+
+  const errorBanner = submitError && (
+    <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+      <AlertCircle size={16} className="flex-shrink-0" />
+      {getErrorMessage(submitError.err, t, submitError.fallbackKey)}
+    </div>
+  );
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Edit Trip" size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('editTrip')} size="lg">
       {loading || !form ? (
-        <div className="flex items-center justify-center py-16 text-sm text-gray-400">Loading…</div>
+        submitError && !loading
+          ? errorBanner
+          : <div className="flex items-center justify-center py-16 text-sm text-gray-400">{t('loading')}</div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
 
           {/* Cover Image */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Cover Image</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">{t('coverImage')}</label>
             {form.coverPhoto ? (
               <div className="relative rounded-xl overflow-hidden h-40 bg-gray-100">
                 <img src={form.coverPhoto} alt="preview" className="w-full h-full object-cover" />
@@ -186,8 +220,8 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
             ) : (
               <label className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:border-primary/50 cursor-pointer transition-colors">
                 <Upload size={24} className="text-gray-400 mb-2" />
-                <span className="text-sm text-gray-500">Click to upload image</span>
-                <span className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB</span>
+                <span className="text-sm text-gray-500">{t('clickToUpload')}</span>
+                <span className="text-xs text-gray-400 mt-1">{t('uploadHint')}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
               </label>
             )}
@@ -197,15 +231,15 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                Title (English) <span className="text-red-500">*</span>
+                {t('titleEn')} <span className="text-red-500">*</span>
               </label>
               <input type="text" value={form.titleEn} onChange={(e) => set('titleEn', e.target.value)}
-                placeholder="e.g. Old Jeddah Walking Tour"
+                placeholder="e.g. Old Jeddah Walking Tour" dir="ltr"
                 className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.titleEn ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
               {errors.titleEn && <p className="text-xs text-red-500 mt-1">{errors.titleEn}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Title (Arabic)</label>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('titleAr')}</label>
               <input type="text" value={form.titleAr} onChange={(e) => set('titleAr', e.target.value)}
                 placeholder="مثال: جولة جدة القديمة" dir="rtl"
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
@@ -216,20 +250,20 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                City <span className="text-red-500">*</span>
+                {t('city')} <span className="text-red-500">*</span>
               </label>
               <input type="text" value={form.city} onChange={(e) => set('city', e.target.value)}
-                placeholder="e.g. Riyadh"
+                placeholder="e.g. Riyadh" dir="ltr"
                 className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.city ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
               {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Status</label>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('status')}</label>
               <select value={form.status} onChange={(e) => set('status', e.target.value)}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-gray-700">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="paused">Paused</option>
+                {TOUR_STATUSES.map((st) => (
+                  <option key={st} value={st}>{t(st)}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -238,60 +272,80 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                Price (Adult) SAR <span className="text-red-500">*</span>
+                {t('priceAdultSar')} <span className="text-red-500">*</span>
               </label>
               <input type="number" min="0" value={form.priceAdult}
                 onChange={(e) => set('priceAdult', e.target.value)}
-                placeholder="e.g. 250"
+                placeholder="250"
                 className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 ${errors.priceAdult ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
               {errors.priceAdult && <p className="text-xs text-red-500 mt-1">{errors.priceAdult}</p>}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Price (Child) SAR</label>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('priceChildSar')}</label>
               <input type="number" min="0" value={form.priceChild}
                 onChange={(e) => set('priceChild', e.target.value)}
-                placeholder="e.g. 150"
+                placeholder="150"
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
             </div>
           </div>
 
-          {/* Meeting Time + Location */}
+          {/* Meeting Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Meeting Time</label>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('meetingTime')}</label>
               <input type="text" value={form.meetingTime}
                 onChange={(e) => set('meetingTime', e.target.value)}
-                placeholder="e.g. 09:00 AM"
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1.5">Meeting Location</label>
-              <input type="text" value={form.meetingLocation}
-                onChange={(e) => set('meetingLocation', e.target.value)}
-                placeholder="e.g. Al Balad Gate, Jeddah"
+                placeholder="e.g. 09:00 AM" dir="ltr"
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
             </div>
           </div>
 
-          {/* Description */}
+          {/* Meeting Location EN / AR */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('meetingLocationEn')}</label>
+              <input type="text" value={form.meetingLocationEn}
+                onChange={(e) => set('meetingLocationEn', e.target.value)}
+                placeholder="e.g. Al Balad Gate, Jeddah" dir="ltr"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('meetingLocationAr')}</label>
+              <input type="text" value={form.meetingLocationAr}
+                onChange={(e) => set('meetingLocationAr', e.target.value)}
+                placeholder="مثال: بوابة البلد، جدة" dir="rtl"
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            </div>
+          </div>
+
+          {/* Description EN / AR */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">Description</label>
-            <textarea value={form.description} onChange={(e) => set('description', e.target.value)}
-              placeholder="Describe what makes this tour special…" rows={3}
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">
+              {t('descriptionEn')} <span className="text-red-500">*</span>
+            </label>
+            <textarea value={form.descriptionEn} onChange={(e) => set('descriptionEn', e.target.value)}
+              placeholder="Describe what makes this tour special…" rows={3} dir="ltr"
+              className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none ${errors.descriptionEn ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
+            {errors.descriptionEn && <p className="text-xs text-red-500 mt-1">{errors.descriptionEn}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">{t('descriptionAr')}</label>
+            <textarea value={form.descriptionAr} onChange={(e) => set('descriptionAr', e.target.value)}
+              placeholder="صف ما يميز هذه الجولة…" rows={3} dir="rtl"
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none" />
           </div>
 
           {/* ── Itinerary ─────────────────────────────────────────────────── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-800">Schedule / Itinerary</label>
+              <label className="text-sm font-semibold text-gray-800">{t('itinerary')}</label>
               <button type="button" onClick={addItinerary}
                 className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80">
-                <Plus size={14} /> Add Stop
+                <Plus size={14} /> {t('addStop')}
               </button>
             </div>
             {form.itinerary.length === 0 && (
-              <p className="text-xs text-gray-400 italic">No itinerary yet. Add stops to show the schedule.</p>
+              <p className="text-xs text-gray-400 italic">{t('noItinerary')}</p>
             )}
             <div className="space-y-3">
               {form.itinerary.map((item, i) => (
@@ -302,7 +356,7 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
                     className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 shrink-0" />
                   <input type="text" value={item.activity}
                     onChange={(e) => updateItinerary(i, 'activity', e.target.value)}
-                    placeholder="Activity description"
+                    placeholder={t('activityDescription')} dir="auto"
                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
                   <button type="button" onClick={() => removeItinerary(i)}
                     className="p-2 text-gray-400 hover:text-red-500 transition-colors mt-0.5">
@@ -316,20 +370,20 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           {/* ── Activities ────────────────────────────────────────────────── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-800">Activities (What you'll do)</label>
+              <label className="text-sm font-semibold text-gray-800">{t('activities')}</label>
               <button type="button" onClick={addActivity}
                 className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80">
-                <Plus size={14} /> Add Activity
+                <Plus size={14} /> {t('addActivity')}
               </button>
             </div>
             {form.activities.length === 0 && (
-              <p className="text-xs text-gray-400 italic">No activities yet. Add detailed activity cards for the app.</p>
+              <p className="text-xs text-gray-400 italic">{t('noActivities')}</p>
             )}
             <div className="space-y-4">
               {form.activities.map((item, i) => (
                 <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3 bg-gray-50/50">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Activity {i + 1}</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('activity')} {i + 1}</span>
                     <button type="button" onClick={() => removeActivity(i)}
                       className="p-1 text-gray-400 hover:text-red-500 transition-colors">
                       <Trash2 size={13} />
@@ -347,7 +401,7 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
                   ) : (
                     <label className="flex items-center justify-center gap-2 h-16 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 hover:border-primary/50 cursor-pointer transition-colors">
                       <Upload size={16} className="text-gray-400" />
-                      <span className="text-sm text-gray-400">Upload activity image</span>
+                      <span className="text-sm text-gray-400">{t('uploadActivityImage')}</span>
                       <input type="file" accept="image/*" className="hidden"
                         onChange={(e) => handleActivityImage(i, e.target.files[0])} />
                     </label>
@@ -356,20 +410,20 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
                   <div className="grid grid-cols-2 gap-3">
                     <input type="text" value={item.title}
                       onChange={(e) => updateActivity(i, 'title', e.target.value)}
-                      placeholder="Activity title"
+                      placeholder={t('activityTitle')} dir="auto"
                       className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
                     <input type="text" value={item.duration || ''}
                       onChange={(e) => updateActivity(i, 'duration', e.target.value)}
-                      placeholder="Duration (e.g. 2hr)"
+                      placeholder={t('durationPlaceholder')} dir="auto"
                       className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
                   </div>
                   <input type="text" value={item.location || ''}
                     onChange={(e) => updateActivity(i, 'location', e.target.value)}
-                    placeholder="Location (e.g. Al Thumairi St, Riyadh)"
+                    placeholder={t('locationPlaceholder')} dir="auto"
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white" />
                   <textarea value={item.description || ''}
                     onChange={(e) => updateActivity(i, 'description', e.target.value)}
-                    placeholder="Brief description shown in the app"
+                    placeholder={t('activityDescPlaceholder')} dir="auto"
                     rows={2}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none bg-white" />
                 </div>
@@ -380,21 +434,21 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
           {/* ── What's Included ───────────────────────────────────────────── */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-800">What's Included</label>
+              <label className="text-sm font-semibold text-gray-800">{t('whatsIncluded')}</label>
               <button type="button" onClick={addIncluded}
                 className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80">
-                <Plus size={14} /> Add Item
+                <Plus size={14} /> {t('addItem')}
               </button>
             </div>
             {form.included.length === 0 && (
-              <p className="text-xs text-gray-400 italic">No inclusions yet. e.g. Traditional Dinner, Hotel Pickup</p>
+              <p className="text-xs text-gray-400 italic">{t('noInclusions')}</p>
             )}
             <div className="space-y-2">
               {form.included.map((item, i) => (
                 <div key={i} className="flex gap-2 items-center">
                   <input type="text" value={item}
                     onChange={(e) => updateIncluded(i, e.target.value)}
-                    placeholder="e.g. Traditional Dinner"
+                    placeholder={t('includedPlaceholder')} dir="auto"
                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20" />
                   <button type="button" onClick={() => removeIncluded(i)}
                     className="p-2 text-gray-400 hover:text-red-500 transition-colors">
@@ -405,15 +459,17 @@ export default function EditTripModal({ isOpen, onClose, onSave, tripId }) {
             </div>
           </div>
 
+          {errorBanner}
+
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={handleClose}
               className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-              Cancel
+              {t('cancel')}
             </button>
             <button type="submit" disabled={saving}
               className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors">
-              {saving ? 'Saving…' : 'Save Changes'}
+              {saving ? t('saving') : t('save')}
             </button>
           </div>
         </form>
